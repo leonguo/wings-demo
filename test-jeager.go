@@ -51,7 +51,7 @@ func (d *TracedServeMux) hello(w http.ResponseWriter, r *http.Request) {
 	//opentracing.SetGlobalTracer(tracer)
 	//parent := opentracing.GlobalTracer().StartSpan("hello")
 	//defer parent.Finish()
-	dd := util.NewDatabase(d.tracer)
+	dd := tracing.NewDatabase(d.tracer)
 	dd.Get(ctx, "21354")
 	io.WriteString(w, "Hello world!")
 
