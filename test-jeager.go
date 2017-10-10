@@ -2,57 +2,60 @@ package main
 
 import (
 	"net/http"
-	jaegerconfig "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"time"
-	"fmt"
-	"os"
-	"io"
 	"github.com/leonguo/wings/tracing"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"io"
 )
 
 const app_name = "app-test"
 
-type TracedServeMux struct {
+type data struct {
 	tracer opentracing.Tracer
 }
 
-func main() {
-	cfg := jaegerconfig.Configuration{
-		Sampler: &jaegerconfig.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &jaegerconfig.ReporterConfig{
-			LogSpans:            false,
-			BufferFlushInterval: 1 * time.Second,
-			LocalAgentHostPort:  "47.90.63.215:6831",
-		},
-	}
-	tracer, closer, err := cfg.New(
-		"tt",
-		jaegerconfig.Logger(jaegerlog.StdLogger),
-	)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	defer closer.Close()
-	m := &TracedServeMux{tracer: tracer}
-	http.HandleFunc("/", m.hello)
-	http.ListenAndServe(":9000", nil)
+type TracedServeMux1 struct {
+	mux    *http.ServeMux
+	tracer opentracing.Tracer
 }
 
-func (d *TracedServeMux) hello(w http.ResponseWriter, r *http.Request) {
+// NewServeMux creates a new TracedServeMux.
+func NewServeMux1(tracer opentracing.Tracer) *TracedServeMux1 {
+	return &TracedServeMux1{
+		mux:    http.NewServeMux(),
+		tracer: tracer,
+	}
+}
+
+// Handle implements http.ServeMux#Handle
+func (tm *TracedServeMux1) Handle(pattern string, handler http.Handler) {
+	middleware := nethttp.Middleware(
+		tm.tracer,
+		handler,
+		nethttp.OperationNameFunc(func(r *http.Request) string {
+			return "HTTP " + r.Method + " " + pattern
+		}))
+	tm.mux.Handle(pattern, middleware)
+}
+
+// ServeHTTP implements http.ServeMux#ServeHTTP
+func (tm *TracedServeMux1) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tm.mux.ServeHTTP(w, r)
+}
+func main() {
+	tracer := tracing.InitTrace(app_name)
+	d := &data{tracer: tracer}
+	m := NewServeMux1(d.tracer)
+	m.Handle("/", http.HandlerFunc(d.hello))
+	http.ListenAndServe(":9000", m.mux)
+}
+
+func (d *data) hello(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	//span := tracer.StartSpan("new_span")
-	//span.SetTag("test", "dd")
-	//defer span.Finish()
-	//opentracing.SetGlobalTracer(tracer)
-	//parent := opentracing.GlobalTracer().StartSpan("hello")
-	//defer parent.Finish()
 	dd := tracing.NewDatabase(d.tracer)
-	dd.Get(ctx, "21354")
+	dd.FirstFunction(ctx)
+	dd.Get(ctx, "ddd231")
+	dd.SecondFunction(ctx)
 	io.WriteString(w, "Hello world!")
 
 }
