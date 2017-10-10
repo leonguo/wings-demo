@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"io"
-	"github.com/leonguo/wings/util"
+	"github.com/leonguo/wings/tracing"
 	"github.com/opentracing/opentracing-go"
 )
 
