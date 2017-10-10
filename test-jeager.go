@@ -47,6 +47,7 @@ func main() {
 	d := &data{tracer: tracer}
 	m := NewServeMux1(d.tracer)
 	m.Handle("/", http.HandlerFunc(d.hello))
+	m.Handle("/test", http.HandlerFunc(d.test))
 	http.ListenAndServe(":9000", m.mux)
 }
 
@@ -58,4 +59,8 @@ func (d *data) hello(w http.ResponseWriter, r *http.Request) {
 	dd.SecondFunction(ctx)
 	io.WriteString(w, "Hello world!")
 
+}
+
+func (d *data) test(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "nothing Hello world!")
 }
