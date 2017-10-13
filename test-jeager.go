@@ -18,10 +18,10 @@ type data struct {
 func main() {
 	tracer := tracing.Init(app_name)
 	d := &data{tracer: tracer}
-	m := wings.New(d.tracer)
-	m.Handle("/", http.HandlerFunc(d.hello))
-	m.Handle("/test", http.HandlerFunc(d.test))
-	http.ListenAndServe(":9000", m.Mux)
+	app := wings.New(d.tracer)
+	app.Handle("/", http.HandlerFunc(d.hello))
+	app.Handle("/test", http.HandlerFunc(d.test))
+	http.ListenAndServe(":9000", app.Mux)
 }
 
 func (d *data) hello(w http.ResponseWriter, r *http.Request) {
